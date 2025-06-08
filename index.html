@@ -1,230 +1,398 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Alphaattack Entbannungs-Eintrag</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2em auto; }
-    .hidden { display: none; }
-    input, textarea { width: 100%; margin-bottom: 1em; padding: 0.5em; }
-    button { padding: 0.5em 1em; }
-    #ticket-list { margin-top: 2em; }
-    .ticket { border: 1px solid #ccc; padding: 1em; margin-bottom: 1em; }
-    .admin-reply { margin-top: 1em; font-style: italic; color: green; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Alphaattack Entbannungs-Eintrag</title>
+<style>
+  /* Modernes, dunkles Design */
+  @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    background: #121212;
+    color: #eee;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    background-color: #1f1f1f;
+    width: 100%;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  header h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #56CCF2;
+  }
+
+  #user-info {
+    font-size: 1rem;
+    color: #a0a0a0;
+  }
+
+  main {
+    max-width: 600px;
+    width: 100%;
+    padding: 2rem;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  /* Login Form */
+  form {
+    background: #1e1e1e;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 15px #56CCF2aa;
+    margin-bottom: 2rem;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+  }
+
+  input, textarea, select, button {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 1rem;
+  }
+
+  input, textarea, select {
+    background: #333;
+    color: #eee;
+  }
+
+  button {
+    background: #56CCF2;
+    color: #121212;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  button:hover {
+    background: #39a3e6;
+  }
+
+  /* Tickets Liste für Admin */
+  #tickets-list {
+    background: #1e1e1e;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 0 15px #56CCF2aa;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .ticket {
+    border-bottom: 1px solid #333;
+    padding: 0.8rem 0;
+  }
+
+  .ticket:last-child {
+    border-bottom: none;
+  }
+
+  .ticket h3 {
+    margin: 0 0 0.5rem 0;
+    color: #56CCF2;
+  }
+
+  .ticket p {
+    margin: 0.2rem 0;
+  }
+
+  .ticket textarea {
+    margin-top: 0.5rem;
+    resize: vertical;
+    height: 60px;
+  }
+
+  .ticket button {
+    margin-top: 0.3rem;
+  }
+
+  /* Fehlermeldungen */
+  .error {
+    color: #f44336;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  /* Erfolgsmeldungen */
+  .success {
+    color: #4caf50;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+</style>
 </head>
 <body>
 
-<h1>Alphaattack Entbannungs-Eintrag</h1>
+<header>
+  <h1>Alphaattack Entbannungs-Eintrag</h1>
+  <div id="user-info">Nicht eingeloggt</div>
+</header>
 
-<div id="login-section">
-  <h2>Login / Registrierung</h2>
-  <input type="text" id="username" placeholder="Benutzername" />
-  <input type="password" id="password" placeholder="Passwort" />
-  <button onclick="login()">Anmelden</button>
-  <button onclick="register()">Registrieren</button>
-  <p id="login-msg" style="color:red;"></p>
-</div>
+<main>
+  <!-- Login Formular -->
+  <form id="login-form">
+    <h2>Login</h2>
+    <label for="username">Benutzername</label>
+    <input id="username" name="username" autocomplete="username" required />
+    <label for="password">Passwort</label>
+    <input id="password" type="password" name="password" autocomplete="current-password" required />
+    <button type="submit">Anmelden</button>
+    <div id="login-error" class="error" style="display:none;"></div>
+  </form>
 
-<div id="user-section" class="hidden">
-  <p>Angemeldet als: <span id="current-user"></span></p>
-  <button onclick="logout()">Logout</button>
+  <!-- Entbannungsformular für normale User -->
+  <form id="ticket-form" class="hidden">
+    <h2>Entbannungs-Ticket erstellen</h2>
+    <label for="reason">Wegen was wurdest du gebannt?</label>
+    <textarea id="reason" name="reason" rows="2" required></textarea>
 
-  <div id="form-section" class="hidden">
-    <h2>Entbannungs-Anfrage</h2>
-    <textarea id="reason" placeholder="Wegen was wurdest du gebannt?" required></textarea>
-    <input type="text" id="duration" placeholder="Wie lange wurdest du gebannt?" required />
-    <input type="text" id="no_reason" placeholder="Wurdest du ohne Grund gebannt? (Ja/Nein)" required />
-    <textarea id="proof" placeholder="Hast du einen Beweis?" required></textarea>
-    <button onclick="submitTicket()">Ticket absenden</button>
-    <p id="form-msg" style="color:green;"></p>
-  </div>
+    <label for="duration">Wie lange wurdest du gebannt?</label>
+    <input id="duration" name="duration" required placeholder="z.B. 1 Woche, permanent" />
 
-  <div id="admin-section" class="hidden">
-    <h2>Tickets Übersicht (Admin)</h2>
-    <div id="ticket-list"></div>
-  </div>
-</div>
+    <label for="proof">Wurdest du ohne Grund gebannt? Hast du einen Beweis? (Ja/Nein)</label>
+    <select id="proof" name="proof" required>
+      <option value="" disabled selected>Bitte wählen</option>
+      <option value="Ja">Ja</option>
+      <option value="Nein">Nein</option>
+    </select>
 
+    <button type="submit">Ticket absenden</button>
+    <div id="ticket-success" class="success" style="display:none;">Ticket wurde eingereicht!</div>
+    <div id="ticket-error" class="error" style="display:none;"></div>
+  </form>
+
+  <!-- Admin Bereich Tickets -->
+  <section id="admin-section" class="hidden">
+    <h2>Alle Tickets (Admin)</h2>
+    <div id="tickets-list"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // Supabase config
   const supabaseUrl = 'https://nihjvhsfmjyzcnxxqrfr.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paGp2aHNmbWp5emNueHhxcmZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzODU3NjksImV4cCI6MjA2NDk2MTc2OX0.oFrjyMHscEgncYpInmlv6ivcfMXzTwke3667G4LMvXw';
+
   const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  function setCookie(name, value, days) {
-    let expires = "";
-    if (days) {
-      const d = new Date();
-      d.setTime(d.getTime() + (days*24*60*60*1000));
-      expires = "; expires=" + d.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-  }
-  function getCookie(name) {
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for(let i=0;i < ca.length;i++) {
-      let c = ca[i];
-      while (c.charAt(0)==' ') c = c.substring(1,c.length);
-      if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-    }
-    return null;
-  }
-
+  // Globale Variable für eingeloggten User
   let currentUser = null;
 
-  function showMessage(id, msg, color='red') {
-    const el = document.getElementById(id);
-    el.style.color = color;
-    el.textContent = msg;
+  // Cookie: 1 Account pro IP (einfacher Check)
+  function canCreateAccount() {
+    return !document.cookie.includes('createdAccount=true');
+  }
+  function markAccountCreated() {
+    document.cookie = "createdAccount=true; max-age=" + 60*60*24*30 + "; path=/"; // 30 Tage
   }
 
-  async function login() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
+  // Login Formular
+  const loginForm = document.getElementById('login-form');
+  const loginError = document.getElementById('login-error');
+  const userInfo = document.getElementById('user-info');
 
-    if(!username || !password) {
-      showMessage('login-msg', 'Bitte Benutzername und Passwort eingeben!');
-      return;
-    }
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.style.display = 'none';
 
+    const username = loginForm.username.value.trim();
+    const password = loginForm.password.value;
+
+    // Admin Login (hartkodiert)
     if(username === 'admin' && password === 'ZU/doeur87ejiud983zeh') {
       currentUser = 'admin';
       postLogin();
       return;
     }
 
-    const cookieUser = getCookie('user_' + username);
-    if(cookieUser !== password) {
-      showMessage('login-msg', 'Falsches Passwort oder Benutzer nicht registriert!');
-      return;
+    // Normale User: Supabase Auth (ohne Email-Verification)
+    try {
+      // Prüfen ob Account pro Cookie erlaubt
+      if(!canCreateAccount()) {
+        loginError.textContent = 'Pro IP ist nur ein Account erlaubt.';
+        loginError.style.display = 'block';
+        return;
+      }
+
+      // Versuchen einzuloggen
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: username + '@alphaattack.fake', // Dummy-Email für Login via Supabase (Email wird nicht wirklich genutzt)
+        password: password
+      });
+
+      if(error) {
+        if(error.message.includes('Invalid login credentials')) {
+          // Wenn nicht registriert, dann registrieren
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: username + '@alphaattack.fake',
+            password: password
+          });
+
+          if(signUpError) throw signUpError;
+
+          // Markiere Account als erstellt
+          markAccountCreated();
+          currentUser = username;
+          postLogin();
+          return;
+        } else {
+          throw error;
+        }
+      }
+
+      // Login erfolgreich
+      currentUser = username;
+      postLogin();
+
+    } catch(err) {
+      loginError.textContent = 'Login fehlgeschlagen: ' + err.message;
+      loginError.style.display = 'block';
     }
+  });
 
-    currentUser = username;
-    postLogin();
-  }
-
-  async function register() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-
-    if(!username || !password) {
-      showMessage('login-msg', 'Bitte Benutzername und Passwort eingeben!');
-      return;
-    }
-
-    if(getCookie('registered_ip')) {
-      showMessage('login-msg', 'Pro IP ist nur ein Account erlaubt!');
-      return;
-    }
-
-    setCookie('user_' + username, password, 7);
-    setCookie('registered_ip', 'true', 7);
-
-    showMessage('login-msg', 'Registrierung erfolgreich! Bitte jetzt einloggen.', 'green');
-  }
-
+  // Nach Login - UI anpassen
   function postLogin() {
-    document.getElementById('login-section').classList.add('hidden');
-    document.getElementById('user-section').classList.remove('hidden');
-    document.getElementById('current-user').textContent = currentUser;
-
+    loginForm.classList.add('hidden');
+    userInfo.textContent = `Angemeldet als: ${currentUser}`;
     if(currentUser === 'admin') {
       document.getElementById('admin-section').classList.remove('hidden');
       loadTickets();
     } else {
-      document.getElementById('form-section').classList.remove('hidden');
+      document.getElementById('ticket-form').classList.remove('hidden');
     }
   }
 
-  function logout() {
-    currentUser = null;
-    document.getElementById('login-section').classList.remove('hidden');
-    document.getElementById('user-section').classList.add('hidden');
-    document.getElementById('form-msg').textContent = '';
-    document.getElementById('login-msg').textContent = '';
-  }
+  // Ticket Formular (normale User)
+  const ticketForm = document.getElementById('ticket-form');
+  const ticketSuccess = document.getElementById('ticket-success');
+  const ticketError = document.getElementById('ticket-error');
 
-  async function submitTicket() {
-    const reason = document.getElementById('reason').value.trim();
-    const duration = document.getElementById('duration').value.trim();
-    const no_reason = document.getElementById('no_reason').value.trim();
-    const proof = document.getElementById('proof').value.trim();
+  ticketForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    ticketSuccess.style.display = 'none';
+    ticketError.style.display = 'none';
 
-    if(!reason || !duration || !no_reason || !proof) {
-      showMessage('form-msg', 'Bitte alle Felder ausfüllen!', 'red');
+    const reason = ticketForm.reason.value.trim();
+    const duration = ticketForm.duration.value.trim();
+    const proof = ticketForm.proof.value;
+
+    if(!reason || !duration || !proof) {
+      ticketError.textContent = 'Bitte alle Felder ausfüllen.';
+      ticketError.style.display = 'block';
       return;
     }
 
-    const { data, error } = await supabase
-      .from('tickets')
-      .insert([{ username: currentUser, reason, duration, no_reason, proof }]);
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .insert([{ username: currentUser, reason, duration, proof, reply: null }]);
 
-    if(error) {
-      showMessage('form-msg', 'Fehler beim Absenden: ' + error.message, 'red');
-    } else {
-      showMessage('form-msg', 'Ticket erfolgreich eingereicht!', 'green');
-      document.getElementById('reason').value = '';
-      document.getElementById('duration').value = '';
-      document.getElementById('no_reason').value = '';
-      document.getElementById('proof').value = '';
+      if(error) throw error;
+
+      ticketSuccess.style.display = 'block';
+      ticketForm.reset();
+    } catch(err) {
+      ticketError.textContent = 'Fehler beim Erstellen des Tickets: ' + err.message;
+      ticketError.style.display = 'block';
     }
-  }
+  });
 
+  // Admin lädt Tickets
   async function loadTickets() {
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
       .order('created_at', { ascending: false });
 
-    const container = document.getElementById('ticket-list');
-    container.innerHTML = '';
+    const list = document.getElementById('tickets-list');
+    list.innerHTML = '';
 
     if(error) {
-      container.textContent = 'Fehler beim Laden der Tickets: ' + error.message;
+      list.textContent = 'Fehler beim Laden der Tickets: ' + error.message;
       return;
     }
 
-    if(!data.length) {
-      container.textContent = 'Keine Tickets vorhanden.';
+    if(data.length === 0) {
+      list.textContent = 'Keine Tickets vorhanden.';
       return;
     }
 
     data.forEach(ticket => {
       const div = document.createElement('div');
       div.className = 'ticket';
-
       div.innerHTML = `
-        <b>${ticket.username}</b> schrieb:<br/>
-        <i>Grund:</i> ${ticket.reason}<br/>
-        <i>Dauer:</i> ${ticket.duration}<br/>
-        <i>Ohne Grund gebannt?</i> ${ticket.no_reason}<br/>
-        <i>Beweis:</i> ${ticket.proof}<br/>
-        <i>Erstellt am:</i> ${new Date(ticket.created_at).toLocaleString()}<br/>
-        <textarea id="reply_${ticket.id}" placeholder="Antwort schreiben...">${ticket.reply || ''}</textarea><br/>
-        <button onclick="submitReply('${ticket.id}')">Antwort speichern</button>
+        <h3>Ticket von <strong>${escapeHtml(ticket.username)}</strong></h3>
+        <p><strong>Grund:</strong> ${escapeHtml(ticket.reason)}</p>
+        <p><strong>Dauer:</strong> ${escapeHtml(ticket.duration)}</p>
+        <p><strong>Beweis:</strong> ${escapeHtml(ticket.proof)}</p>
+        <p><strong>Antwort:</strong></p>
+        <textarea id="reply-${ticket.id}" placeholder="Antwort schreiben...">${ticket.reply || ''}</textarea>
+        <button onclick="saveReply('${ticket.id}')">Antwort speichern</button>
       `;
-
-      container.appendChild(div);
+      list.appendChild(div);
     });
   }
 
-  async function submitReply(id) {
-    const reply = document.getElementById(`reply_${id}`).value.trim();
+  // Antwort speichern (Admin)
+  async function saveReply(id) {
+    const textarea = document.getElementById(`reply-${id}`);
+    const reply = textarea.value.trim();
 
-    const { data, error } = await supabase
-      .from('tickets')
-      .update({ reply })
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({ reply })
+        .eq('id', id);
 
-    if(error) {
-      alert('Fehler beim Speichern der Antwort: ' + error.message);
-    } else {
+      if(error) throw error;
+
       alert('Antwort gespeichert!');
       loadTickets();
+    } catch(err) {
+      alert('Fehler beim Speichern der Antwort: ' + err.message);
     }
+  }
+
+  // Hilfsfunktion zum Escapen (Sicherheit gegen XSS)
+  function escapeHtml(text) {
+    if(!text) return '';
+    return text.replace(/[&<>"']/g, m => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[m]);
   }
 </script>
 
