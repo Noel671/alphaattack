@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alphaattack Entbannungs-Eintrag</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2em auto; }
+    .hidden { display: none; }
+    input, textarea { width: 100%; margin-bottom: 1em; padding: 0.5em; }
+    button { padding: 0.5em 1em; }
+    #ticket-list { margin-top: 2em; }
+    .ticket { border: 1px solid #ccc; padding: 1em; margin-bottom: 1em; }
+    .admin-reply { margin-top: 1em; font-style: italic; color: green; }
+  </style>
+</head>
+<body>
+
+<h1>Alphaattack Entbannungs-Eintrag</h1>
+
+<div id="login-section">
+  <h2>Login / Registrierung</h2>
+  <input type="text" id="username" placeholder="Benutzername" />
+  <input type="password" id="password" placeholder="Passwort" />
+  <button onclick="login()">Anmelden</button>
+  <button onclick="register()">Registrieren</button>
+  <p id="login-msg" style="color:red;"></p>
+</div>
+
+<div id="user-section" class="hidden">
+  <p>Angemeldet als: <span id="current-user"></span></p>
+  <button onclick="logout()">Logout</button>
+
+  <div id="form-section" class="hidden">
+    <h2>Entbannungs-Anfrage</h2>
+    <textarea id="reason" placeholder="Wegen was wurdest du gebannt?" required></textarea>
+    <input type="text" id="duration" placeholder="Wie lange wurdest du gebannt?" required />
+    <input type="text" id="no_reason" placeholder="Wurdest du ohne Grund gebannt? (Ja/Nein)" required />
+    <textarea id="proof" placeholder="Hast du einen Beweis?" required></textarea>
+    <button onclick="submitTicket()">Ticket absenden</button>
+    <p id="form-msg" style="color:green;"></p>
+  </div>
+
+  <div id="admin-section" class="hidden">
+    <h2>Tickets Übersicht (Admin)</h2>
+    <div id="ticket-list"></div>
+  </div>
+</div>
+
+<script>
+  const supabaseUrl = 'https://nihjvhsfmjyzcnxxqrfr.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5paGp2aHNmbWp5emNueHhxcmZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzODU3NjksImV4cCI6MjA2NDk2MTc2OX0.oFrjyMHscEgncYpInmlv6ivcfMXzTwke3667G4LMvXw';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days*24*60*60*1000));
+      expires = "; expires=" + d.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+  }
+  function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i=0;i < ca.length;i++) {
+      let c = ca[i];
+      while (c.charAt(0)==' ') c = c.substring(1,c.length);
+      if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+    }
+    return null;
+  }
+
+  let currentUser = null;
+
+  function showMessage(id, msg, color='red') {
+    const el = document.getElementById(id);
+    el.style.color = color;
+    el.textContent = msg;
+  }
+
+  async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    if(!username || !password) {
+      showMessage('login-msg', 'Bitte Benutzername und Passwort eingeben!');
+      return;
+    }
+
+    if(username === 'admin' && password === 'ZU/doeur87ejiud983zeh') {
+      currentUser = 'admin';
+      postLogin();
+      return;
+    }
+
+    const cookieUser = getCookie('user_' + username);
+    if(cookieUser !== password) {
+      showMessage('login-msg', 'Falsches Passwort oder Benutzer nicht registriert!');
+      return;
+    }
+
+    currentUser = username;
+    postLogin();
+  }
+
+  async function register() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    if(!username || !password) {
+      showMessage('login-msg', 'Bitte Benutzername und Passwort eingeben!');
+      return;
+    }
+
+    if(getCookie('registered_ip')) {
+      showMessage('login-msg', 'Pro IP ist nur ein Account erlaubt!');
+      return;
+    }
+
+    setCookie('user_' + username, password, 7);
+    setCookie('registered_ip', 'true', 7);
+
+    showMessage('login-msg', 'Registrierung erfolgreich! Bitte jetzt einloggen.', 'green');
+  }
+
+  function postLogin() {
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('user-section').classList.remove('hidden');
+    document.getElementById('current-user').textContent = currentUser;
+
+    if(currentUser === 'admin') {
+      document.getElementById('admin-section').classList.remove('hidden');
+      loadTickets();
+    } else {
+      document.getElementById('form-section').classList.remove('hidden');
+    }
+  }
+
+  function logout() {
+    currentUser = null;
+    document.getElementById('login-section').classList.remove('hidden');
+    document.getElementById('user-section').classList.add('hidden');
+    document.getElementById('form-msg').textContent = '';
+    document.getElementById('login-msg').textContent = '';
+  }
+
+  async function submitTicket() {
+    const reason = document.getElementById('reason').value.trim();
+    const duration = document.getElementById('duration').value.trim();
+    const no_reason = document.getElementById('no_reason').value.trim();
+    const proof = document.getElementById('proof').value.trim();
+
+    if(!reason || !duration || !no_reason || !proof) {
+      showMessage('form-msg', 'Bitte alle Felder ausfüllen!', 'red');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('tickets')
+      .insert([{ username: currentUser, reason, duration, no_reason, proof }]);
+
+    if(error) {
+      showMessage('form-msg', 'Fehler beim Absenden: ' + error.message, 'red');
+    } else {
+      showMessage('form-msg', 'Ticket erfolgreich eingereicht!', 'green');
+      document.getElementById('reason').value = '';
+      document.getElementById('duration').value = '';
+      document.getElementById('no_reason').value = '';
+      document.getElementById('proof').value = '';
+    }
+  }
+
+  async function loadTickets() {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const container = document.getElementById('ticket-list');
+    container.innerHTML = '';
+
+    if(error) {
+      container.textContent = 'Fehler beim Laden der Tickets: ' + error.message;
+      return;
+    }
+
+    if(!data.length) {
+      container.textContent = 'Keine Tickets vorhanden.';
+      return;
+    }
+
+    data.forEach(ticket => {
+      const div = document.createElement('div');
+      div.className = 'ticket';
+
+      div.innerHTML = `
+        <b>${ticket.username}</b> schrieb:<br/>
+        <i>Grund:</i> ${ticket.reason}<br/>
+        <i>Dauer:</i> ${ticket.duration}<br/>
+        <i>Ohne Grund gebannt?</i> ${ticket.no_reason}<br/>
+        <i>Beweis:</i> ${ticket.proof}<br/>
+        <i>Erstellt am:</i> ${new Date(ticket.created_at).toLocaleString()}<br/>
+        <textarea id="reply_${ticket.id}" placeholder="Antwort schreiben...">${ticket.reply || ''}</textarea><br/>
+        <button onclick="submitReply('${ticket.id}')">Antwort speichern</button>
+      `;
+
+      container.appendChild(div);
+    });
+  }
+
+  async function submitReply(id) {
+    const reply = document.getElementById(`reply_${id}`).value.trim();
+
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ reply })
+      .eq('id', id);
+
+    if(error) {
+      alert('Fehler beim Speichern der Antwort: ' + error.message);
+    } else {
+      alert('Antwort gespeichert!');
+      loadTickets();
+    }
+  }
+</script>
+
+</body>
+</html>
